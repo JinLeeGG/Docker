@@ -8,7 +8,7 @@ This guide covers setting up a complete Docker lab environment, from virtual mac
 
 This part details the initial steps for setting up your virtual machines using VMware Workstation.
 
-### **I. Accessing Necessary Files (Only works in academy computer)**
+### **I. Accessing Necessary Files (Only works in academy computer | setup files are in my kakaotalk)**
 
 * **Location:** All required files are located on the **D drive**.
 * **Shared Folder Access:**

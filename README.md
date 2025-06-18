@@ -77,7 +77,7 @@ ping docker2.example.com
 
 ## 📝 Notes
 
-- All guides are tested on VMware Workstation 16 Pro with CentOS Stream 8
+- All guides are tested on VMware Workstation 16 Pro with CentOS Stream 9
 - Network configurations assume NAT networking mode
 - Setup scripts are sourced from GitHub for automated configuration
 - Environment is designed for learning purposes with relaxed security settings

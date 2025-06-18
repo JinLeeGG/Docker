@@ -8,7 +8,7 @@ This guide covers setting up a complete Docker lab environment, from virtual mac
 
 This part details the initial steps for setting up your virtual machines using VMware Workstation.
 
-### **I. Accessing Necessary Files**
+### **I. Accessing Necessary Files (Only works in academy computer)**
 
 * **Location:** All required files are located on the **D drive**.
 * **Shared Folder Access:**
@@ -16,8 +16,8 @@ This part details the initial steps for setting up your virtual machines using V
     * Type `\\192.168.11.30` and press Enter.
     * **ID:** `cloud1`
     * **Password:** `cloud1234!`
-    * Navigate to the `Kim Jeong-woo` folder, then enter the `Dokcer` folder.
-* **Copy Files:** Copy the entire `Dokcer` folder to your personal D drive (e.g., `D:\<Your_Name>\Dokcer`).
+    * Navigate to the `Kim Jeong-woo` folder, then enter the `Docker` folder.
+* **Copy Files:** Copy the entire `Docker` folder to your personal D drive (e.g., `D:\<Your_Name>\ Docker`).
     * *Note:* For those using lecture hall PCs, these files are often pre-downloaded. For personal notebooks or those watching the recorded video, copying this folder is essential.
 
 ### **II. Launching & Configuring VMware Workstation 16**

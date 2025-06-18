@@ -334,4 +334,3 @@ This final part guides you through the process of installing the Docker Engine o
     * **In each VM's Terminal:** `init 0` (or `poweroff`) and press Enter.
     * *Alternatively, in VMware Workstation:* Right-click the VM in the left panel $\rightarrow$ **Power** $\rightarrow$ **Power Off**.
 
-You now have two fully configured Linux VMs (`docker1` and `docker2`) with Docker Engine installed, ready for your Docker learning journey!

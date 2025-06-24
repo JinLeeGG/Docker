@@ -1,0 +1,8 @@
+# docker network, docker container 운용, portainer 
+# Docker 리소스 제어 및 모니터링 
+
+
+
+1. 메모리
+2. Swap 메모리 
+  - 용량이 부족하면 하드디스크의 일정 용량을 가져와서 사용한다.

@@ -1,6 +1,5 @@
 # Docker Networking, Container Management, Portainer, and Resource Control. (2025/06/25)
 
-
 ### **Chapter 9: Docker Network Operations**
 
 #### **1. Docker Network Types (`bridge`, `host`, `none`)**
@@ -70,7 +69,32 @@ This diagram shows the setup used in the video to demonstrate communication betw
 
 ### **Chapter 10: Docker Container Operations**
 
-#### **1. Key Container Management Commands**
+#### **1. Legacy Container Linking (`--link`)**
+
+> **Note:** This is a legacy feature. User-defined bridge networks are the modern standard for container communication.
+
+The `--link` flag automatically adds a host entry (`/etc/hosts`) in the receiving container, allowing name resolution.
+
+**Example:**
+
+```bash
+# Step 1: Create a MySQL database container
+docker container run -d --name mysql \
+  -v /dbdata:/var/lib/mysql \
+  -e MYSQL_ROOT_PASSWORD=wordpress \
+  mysql:5.7
+
+# Step 2: Create a WordPress container and link it to the MySQL container
+docker container run -d --name wordpress \
+  --link mysql \
+  -e WORDPRESS_DB_HOST=mysql \
+  -e WORDPRESS_DB_USER=root \
+  -e WORDPRESS_DB_PASSWORD=wordpress \
+  -p 80:80 \
+  wordpress:5
+```
+
+#### **2. Key Container Management Commands**
 
 This table summarizes essential commands for managing the container lifecycle.
 
@@ -90,7 +114,12 @@ This table summarizes essential commands for managing the container lifecycle.
 
 ### **Chapter 11: Docker Resource Control and Monitoring**
 
-#### **1. Resource Limit Options (`docker run`)**
+#### **1. Why Limit Resources?**
+
+  - By default, a container can use all of the host's hardware resources (CPU, Memory, I/O).
+  - If one container consumes excessive resources, it can negatively impact other containers on the same host. It's crucial to set limits.
+
+#### **2. Resource Limit Options (`docker run`)**
 
 It is critical to set resource limits to ensure fair resource distribution and host stability.
 
@@ -102,6 +131,13 @@ It is critical to set resource limits to ensure fair resource distribution and h
 | `--memory-swap` | Sets the total allowed memory + swap. Use `-1` for unlimited swap. |
 | `--oom-kill-disable` | Prevents the kernel from killing the container on an Out-Of-Memory error. **(Use with caution)**. |
 
+**Example:**
+
+```bash
+# Limit a container to 200MB of memory and a total of 300MB (memory+swap)
+docker run -it -m 200m --memory-swap 300m ubuntu
+```
+
 **CPU Limit Options:**
 
 | Flag | Description |
@@ -109,6 +145,16 @@ It is critical to set resource limits to ensure fair resource distribution and h
 | `--cpus` | Limits the number of CPU cores the container can use (e.g., `"1.5"`). |
 | `--cpu-shares` | A relative weight for CPU time. Default is `1024`. Higher means more CPU time. |
 | `--cpuset-cpus` | Pins a container to specific CPU cores (e.g., `"0,1"`). |
+
+**Examples:**
+
+```bash
+# Give a container twice the CPU share relative to others
+docker run -d --name container_A --cpu-shares 2048 nginx
+
+# Pin a container to CPU cores 0 and 1
+docker run -d --name container_B --cpuset-cpus="0,1" nginx
+```
 
 **Block I/O Limit Options:**
 
@@ -118,6 +164,13 @@ It is critical to set resource limits to ensure fair resource distribution and h
 | `--device-write-bps` | Limits write speed in bytes per second. |
 | `--device-read-iops` | Limits read rate in IO operations per second. |
 | `--device-write-iops` | Limits write rate in IO operations per second. |
+
+**Example:**
+
+```bash
+# Limit the write speed to the host's sda disk to 1MB/s
+docker run -it --rm --device-write-bps /dev/sda:1mb ubuntu
+```
 
 -----
 
@@ -146,3 +199,14 @@ docker container run -d \
 | `-v /var/run/docker.sock...` | **(Crucial)** Mounts the Docker socket from the host into the container, allowing Portainer to manage Docker. |
 | `-v portainer_data:/data` | Creates a named volume to persist Portainer's own settings and data. |
 | `portainer/portainer-ce:latest`| Specifies the Docker image to use (Community Edition, latest version). |
+
+#### **2. Using Portainer**
+
+  - Access the web UI at `https://<your-docker-host-ip>:9443`.
+  - On first launch, you will set up an `admin` user and password.
+  - You can then connect to the local Docker environment to manage:
+      - **Containers**: Start, stop, kill, inspect, view logs, and open a console (`exec`).
+      - **Images**: Pull images from Docker Hub, view existing images, and remove them.
+      - **Networks**: View, create, and remove networks.
+      - **Volumes**: View, create, and remove volumes.
+      - **Dashboard**: Get an at-a-glance overview of your Docker environment.

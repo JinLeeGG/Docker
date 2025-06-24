@@ -1,338 +1,181 @@
 
 # Docker Volume, Binding, Network (2025/06/19)
 
-### **Part 1: Docker Data Management - Volumes and Persistence**
+### **Chapter 1: Docker Data Persistence**
 
-#### **1. Introduction to Docker Data Management**
+By default, containers are ephemeral. To permanently save data generated within a container, Docker provides two primary solutions: **Volumes** and **Bind Mounts**.
 
-  - When a Docker container runs, it's an instance of an image. Any data created inside the container is stored on the container's **writable layer**.
-  - This data is **ephemeral**, meaning it is permanently lost when the container is deleted.
-  - To solve this, we need to persist data by storing it outside the container, on the **host machine**.
-  - Docker offers two primary methods for this: **Volumes** and **Bind Mounts**.
+#### **1. Data Management: Volumes vs. Bind Mounts**
 
-#### **2. Demonstrating Ephemeral Container Storage**
+This table provides a high-level comparison of the two main data persistence methods.
 
-To understand why data persistence is crucial, let's observe the default behavior.
+| Feature | Docker Volumes | Bind Mounts |
+| :--- | :--- | :--- |
+| **Data Location** | A dedicated area on the host, managed by Docker (`/var/lib/docker/volumes`). | Any file or directory on the host machine. |
+| **Management** | Managed by **Docker** via the Docker CLI (`docker volume ...`). | Managed by the **user/host OS** via standard OS commands. |
+| **Primary Use Case** | Persisting data for stateful applications like databases, config files. | Syncing source code for a development environment. |
+| **Initialization** | If the volume is empty, the container's data is copied **into** the volume. | The host directory's content **overwrites** (or obscures) the container's content. |
+| **Portability** | **High**. Managed by name, independent of the host's directory structure. | **Low**. Dependent on a specific path on the host. |
 
-  * **Step 1: Run a CentOS container.**
+##### **How Volumes Work (Diagram)**
 
-    ```bash
-    docker container run -it --name testos centos:8
-    ```
+```
+      [ Docker Container ]                           [ Docker Host ]
+┌─────────────────────────┐                   ┌──────────────────────────────────┐
+│                         │                   │                                  │
+│  /usr/share/nginx/html  │ <-----(Mounts)----->│ /var/lib/docker/volumes/myvol/_data │
+│      (Container Path)     │      (Data Sync)      │      (Docker Managed Area)       │
+│                         │                   │                                  │
+└─────────────────────────┘                   └──────────────────────────────────┘
+```
 
-  * **Step 2: Create a file inside the container.**
+##### **How Bind Mounts Work (Diagram)**
 
-    ```bash
-    touch testfile
-    ls 
-    ```
+```
+      [ Docker Container ]                           [ Docker Host ]
+┌─────────────────────────┐                   ┌──────────────────────────────────┐
+│                         │                   │                                  │
+│      /usr/src/app       │ <----(Direct Map)---> │  /home/dev/my-project/src      │
+│      (Container Path)     │                   │       (Any Path on Host)         │
+│                         │                   │                                  │
+└─────────────────────────┘                   └──────────────────────────────────┘
+```
 
-    Output shows `testfile` is created in the container's root directory.
+#### **2. Practical Examples**
 
-  * **Step 3: Exit and inspect the container.**
+##### **Example 1: Using a Volume with Nginx**
 
-    ```bash
-    exit
-    docker container ls -a
-    ```
-
-    The `testos` container will have an `Exited` status. The data is still there, just not accessible.
-
-  * **Step 4: Restart and re-enter the container.**
-
-    ```bash
-    docker container start testos
-    docker container exec -it testos /bin/bash
-    ls
-    ```
-
-    The `testfile` is still present because the container was only stopped and restarted.
-
-  * **Step 5: Delete and recreate the container.**
+1.  **Create a Volume**:
 
     ```bash
-    exit
-    docker container rm -f testos
-    docker container run -it --name testos centos:8
-    ls
+    docker volume create nginx-vol
     ```
 
-    The `testfile` is now **gone**. This is because the original container, along with its writable layer where the file was stored, was deleted. This demonstrates the ephemeral nature of container storage.
-
-#### **3. Docker Volumes: The Preferred Method for Persistence**
-
-  - **Volumes** are the recommended mechanism for persisting data in Docker.
-  - They are managed by Docker and stored in a specific directory on the host filesystem (typically `/var/lib/docker/volumes/` on Linux systems).
-  - When you attach a volume to a container, it appears as a standard directory or file within the container's filesystem.
-
-**Key Advantages of Volumes:**
-
-  * **Managed by Docker:** Can be created, listed, and removed using Docker CLI commands (e.g., `docker volume create`).
-  * **Portability and Safety:** Easier to back up, migrate, and safely share among multiple containers.
-  * **Platform Independent:** Works consistently across both Linux and Windows containers.
-
-#### **4. Practical Example 1: Using Volumes with an Nginx Web Server**
-
-  * **Step 1: Create a named volume.**
-    A named volume is easier to reference and manage.
+2.  **Run a Container and Attach the Volume**:
 
     ```bash
-    docker volume create testvol
-    docker volume ls
+    docker run -d --name myweb -v nginx-vol:/usr/share/nginx/html -p 8080:80 nginx
     ```
 
-    This confirms that `testvol` has been created.
-
-  * **Step 2: Run an Nginx container with the volume mounted.**
-    The `-v` or `--volume` flag is used to mount a volume. The format is `volume-name:container-directory`.
+3.  **Modify Data on the Host**: The change is immediately reflected in the container.
 
     ```bash
-    docker container run -d --name mynginx -v testvol:/usr/share/nginx/html -p 8080:80 nginx
+    echo '<h1>Hello from Docker Volume!</h1>' > /var/lib/docker/volumes/nginx-vol/_data/index.html
     ```
 
-      * `-v testvol:/usr/share/nginx/html`: Mounts our `testvol` volume to `/usr/share/nginx/html`, which is the default web content directory inside the Nginx container.
+##### **Example 2: Using a Bind Mount for Development**
 
-  * **Step 3: Inspect the container's mount configuration.**
+1.  **Create a Project Directory on the Host**:
 
     ```bash
-    docker container inspect mynginx
+    mkdir -p /source/my-app
+    echo '<h1>Live Reload with Bind Mounts</h1>' > /source/my-app/index.html
     ```
 
-    In the JSON output, find the `"Mounts"` section. It will show the details of the volume, including its `Source` path on the host.
-
-    ```json
-    "Mounts": [
-        {
-            "Type": "volume",
-            "Name": "testvol",
-            "Source": "/var/lib/docker/volumes/testvol/_data",
-            "Destination": "/usr/share/nginx/html",
-            ...
-        }
-    ]
-    ```
-
-  * **Step 4: Check the volume's content on the host.**
-    When a container is started with an empty volume, Docker populates the volume with the content from the specified container directory.
+2.  **Run a Container with a Bind Mount**:
 
     ```bash
-    ls -l /var/lib/docker/volumes/testvol/_data
+    docker container run -d --name dev-server -v /source/my-app:/usr/share/nginx/html -p 8081:80 nginx
     ```
 
-    You will see `index.html` and `50x.html`, the default Nginx files, have been copied into the volume.
-
-  * **Step 5: Modify the web content from the host.**
-    Now that the data is on the host, we can edit it directly. This change will be reflected in the container.
-
-    ```bash
-    echo '<h1>Test Volume Web Page</h1>' > /var/lib/docker/volumes/testvol/_data/index.html
-    ```
-
-  * **Step 6: Verify the change in the browser.**
-    Open a web browser and navigate to `http://<your-docker-host-ip>:8080`. You will see "Test Volume Web Page" instead of the default Nginx page.
-
-#### **5. Practical Example 2: Using Volumes with a MySQL Database**
-
-This is a critical use case, as database files must always be persistent.
-
-  * **Step 1: Create a volume for MySQL data.**
-
-    ```bash
-    docker volume create mysqlvol
-    ```
-
-  * **Step 2: Run the MySQL container with the volume.**
-
-    ```bash
-    docker container run -d --name mydb -v mysqlvol:/var/lib/mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=password mysql:5.7
-    ```
-
-      * `-v mysqlvol:/var/lib/mysql`: Mounts `mysqlvol` to `/var/lib/mysql`, which is MySQL's default data directory.
-      * `-e MYSQL_ROOT_PASSWORD=password`: Sets the database root password using an environment variable.
-
-  * **Step 3: Verify data persistence on the host.**
-
-    ```bash
-    tree -L 2 /var/lib/docker/volumes/mysqlvol/_data
-    ```
-
-    This shows that MySQL has initialized its database files inside the `mysqlvol` on the host machine.
-
-  * **Step 4: Connect to the MySQL server from another host (`docker2`).**
-    This simulates a client connecting to the database server.
-
-    ```bash
-    # On docker2, install the MySQL client
-    yum -y install mysql
-
-    # Connect to the MySQL server on docker1
-    mysql -h 192.168.2.10 -u root -p
-    # Enter password: password
-    ```
-
-  * **Step 5: Create a database and data to test persistence.**
-
-    ```sql
-    CREATE DATABASE testdb;
-    USE testdb;
-    CREATE TABLE docker (id INT, name VARCHAR(20));
-    INSERT INTO docker VALUES(1, 'docker_user');
-    SELECT * FROM docker;
-    exit
-    ```
-
-  * **Step 6: Clean up and verify persistence.**
-    Even if we remove the container, the data in the volume will remain.
-
-    ```bash
-    # On docker1
-    docker container rm -f mydb
-    docker volume rm mysqlvol
-    ```
-
-    This ensures our environment is clean for the next steps.
+    Now, any changes you make to files in `/source/my-app` on your host are instantly available in the container, which is ideal for development.
 
 -----
 
-### **Part 2: Bind Mounts and Advanced Volume Usage**
+### **Chapter 2: Docker Networking**
 
-#### **1. Bidirectional Sync with Volumes**
+#### **1. Docker Network Drivers**
 
-This section demonstrates how changes in the container are reflected back to the host volume.
+| Driver | Description | Use Case |
+| :--- | :--- | :--- |
+| **`bridge`** | **(Default)** Creates a private internal network. Docker manages IP addressing, routing, and a gateway for containers. | The most common driver for standalone containers that need to communicate. |
+| **`host`** | The container shares the host's network stack. There is no network isolation. | When network performance is critical and network isolation is not needed. |
+| **`none`** | The container has no network interfaces besides loopback (`lo`). It's completely isolated. | For batch jobs or security-sensitive tasks that require no network access. |
 
-  * **Step 1: Create a volume and an Apache (`httpd`) container.**
+##### **Default Bridge Network (`docker0`) Architecture**
 
-    ```bash
-    docker volume create wwwvol
-    docker container run -d --name myweb -v wwwvol:/usr/local/apache2/htdocs -p 8080:80 httpd
-    ```
+```
++------------------+     +--------------------------+     +-------------------+
+|   Container A    |     |      Docker Host         |     |   External Network  |
+|  (172.17.0.2)    |<--->|   docker0 (172.17.0.1)   |<--->|  ens33 (Host IP)    |
++------------------+     | (Virtual Bridge/Gateway) |     |  (e.g., Internet)   |
+|   Container B    |     +--------------------------+     +-------------------+
+|  (172.17.0.3)    |
++------------------+
+```
 
-  * **Step 2: Modify content from the host and verify.**
+#### **2. User-Defined Bridge Networks**
 
-    ```bash
-    echo '<h1>Volume Test Page</h1>' > /var/lib/docker/volumes/wwwvol/_data/index.html
-    curl http://192.168.2.10:8080 
-    # Output: <h1>Volume Test Page</h1>
-    ```
+For production, it is best practice to create custom networks to isolate applications and enable automatic service discovery using container names.
 
-  * **Step 3: Modify content from inside the container.**
+##### **Key Network Commands**
 
-    ```bash
-    docker container exec -it myweb /bin/bash
-    echo '<h1>Modified from Container</h1>' > /usr/local/apache2/htdocs/index.html
-    exit
-    ```
+| Command | Description |
+| :--- | :--- |
+| `docker network create <name>` | Creates a new bridge network. |
+| `docker network ls` | Lists all available networks. |
+| `docker network inspect <name>` | Shows detailed information about a network. |
+| `docker network connect <net> <container>`| Connects a running container to an additional network. |
+| `docker network rm <name>` | Removes a network (must not have containers attached). |
 
-  * **Step 4: Verify the change on the host.**
-    The change made inside the container is instantly visible on the host's volume.
+##### **Practical Example: Connecting a Web App to a Database**
 
-    ```bash
-    cat /var/lib/docker/volumes/wwwvol/_data/index.html
-    # Output: <h1>Modified from Container</h1>
-    ```
-
-#### **2. Bind Mounts: Direct Host-to-Container Mapping**
-
-Bind mounts map a file or directory on the host to a file or directory in the container. The key difference from volumes is that Docker does not manage the data; it's just a direct path mapping.
-
-  * **Step 1: Create a directory and file on the host.**
+1.  **Create a custom network**:
 
     ```bash
-    mkdir /www
-    echo '<h1>Bind Mounts Test Page</h1>' > /www/index.html
+    docker network create web-db-net
     ```
 
-  * **Step 2: Run a container using a bind mount.**
-    The `-v` flag syntax is the same, but you provide an absolute path from the host.
+2.  **Run containers on the same network**:
 
     ```bash
-    docker container run -d --name mynginx -v /www:/usr/share/nginx/html -p 8080:80 nginx
+    # Run the Database container
+    docker run -d --name database --network web-db-net -e MYSQL_ROOT_PASSWORD=pass mysql:5.7
+
+    # Run the Web App container
+    docker run -d --name webapp --network web-db-net -p 8080:80 my-webapp-image
     ```
 
-  * **Step 3: Verify the result.**
-    Access `http://192.168.2.10:8080`. It will serve the `index.html` file directly from the host's `/www` directory.
+      * The `webapp` container can now connect to the database using the hostname `database` instead of a hard-coded IP address, thanks to Docker's internal DNS service.
 
-  * **Important Caveat:** With bind mounts, if the host directory is empty, it **hides/overwrites** any content that might have existed in the container's target directory (e.g., `/usr/share/nginx/html`).
+#### **3. Additional Networking Options**
 
-#### **3. Use Case: Scaling Web Servers with a Shared Bind Mount**
-
-Bind mounts are excellent for sharing a single source of content across multiple containers.
-
-  * **Step 1: Create multiple Nginx containers pointing to the same host directory.**
-    ```bash
-    docker container run -d --name myweb1 -v /www:/usr/share/nginx/html -p 8001:80 nginx
-    docker container run -d --name myweb2 -v /www:/usr/share/nginx/html -p 8002:80 nginx
-    docker container run -d --name myweb3 -v /www:/usr/share/nginx/html -p 8003:80 nginx
-    ```
-  * **Step 2: Verify.**
-    Accessing the web servers on ports `8001`, `8002`, and `8003` will all serve the exact same content from the `/www` directory on the host. Modifying the `index.html` file in `/www` updates all three sites instantly.
+| Flag | Description | Example |
+| :--- | :--- | :--- |
+| **`--hostname`** | Sets the container's hostname. | `... --hostname my-server centos:8` |
+| **`--dns`** | Specifies a custom DNS server for the container. | `... --dns=1.1.1.1 centos:8` |
+| **`--add-host`** | Adds a custom host-to-IP mapping in the container's `/etc/hosts` file. | `... --add-host api.server:10.0.0.5 centos:8` |
 
 -----
 
-### **Part 3: Docker Networking**
+### **Chapter 3: Container Resource Control & Management**
 
-#### **1. Docker Network Fundamentals**
+#### **1. The Importance of Resource Limits**
 
-  * **Default Bridge Network (`docker0`):** By default, all containers are attached to this bridge network. It allows containers to communicate with each other and with the host. The host usually acts as the gateway at `172.17.0.1`.
-  * **User-Defined Networks:** It is best practice to create custom bridge networks for applications. They provide better isolation and enable automatic DNS resolution between containers by their names.
+  - By default, a container can use all of the host's hardware resources (CPU, Memory).
+  - It's crucial to set limits to prevent a single container from starving other containers or crashing the host.
 
-#### **2. User-Defined Bridge Network Demonstration**
+#### **2. Key Resource Limit Options**
 
-  * **Step 1: Create a custom bridge network.**
+| Resource | Flag | Description | Example |
+| :--- | :--- | :--- | :--- |
+| **Memory** | `-m` or `--memory` | Sets a hard memory limit for the container. | `-m 512m` |
+| **CPU** | `--cpus` | Limits the number of CPU cores the container can use. | `--cpus="1.5"` |
+| **Block I/O**| `--device-write-bps` | Limits the write speed (bytes per second) to a device. | `--device-write-bps /dev/sda:1mb`|
 
-    ```bash
-    docker network create -d bridge testnet
-    docker network ls
-    ```
+##### **Resource Limit Example**
 
-  * **Step 2: Run containers on different networks.**
+```bash
+# Run an Nginx container limited to 1 CPU core and 1GB of RAM
+docker run -d --name limited-nginx --cpus="1" -m 1g -p 8082:80 nginx
+```
 
-    ```bash
-    # This container is on the default bridge network
-    docker container run -itd --name myweb1 centos:8
+#### **3. Essential Container Management Commands**
 
-    # This container is on our custom 'testnet' network
-    docker container run -itd --name myweb3 --network=testnet centos:8
-    ```
-
-  * **Step 3: Observe network isolation.**
-
-      * Inspect `myweb1` and `myweb3` to see they are on different subnets (e.g., `172.17.x.x` vs. `172.18.x.x`).
-      * From inside `myweb3`, you **cannot** ping `myweb1` by its IP address because they are on separate networks.
-
-#### **3. Other Network Types**
-
-  * **Host Network (`--network=host`)**
-
-      * The container shares the host's network stack. There is no network isolation.
-      * The container uses the host's IP address and does not get its own.
-      * Port mapping with `-p` is not needed and is ignored.
-      * **Command:** `docker container run --rm --network=host centos:8 ip address` (This will show the host's network interfaces).
-
-  * **None Network (`--network=none`)**
-
-      * Completely isolates the container from all networking.
-      * The container only gets a loopback interface (`lo`).
-      * Useful for security or for tasks that don't require network access.
-      * **Command:** `docker container run --rm --network=none centos:8 ip address` (This will only show the `lo` interface).
-
-#### **4. Additional Networking Options**
-
-You can further customize a container's network configuration with these flags:
-
-  * **`--dns=<ip>`**: Sets a custom DNS server for the container.
-    ```bash
-    docker container run -it --name testos --dns=8.8.8.8 centos:8
-    ```
-  * **`--mac-address="<address>"`**: Assigns a specific MAC address.
-    ```bash
-    docker container run -it --mac-address="00:00:00:11:11:11" centos
-    ```
-  * **`--add-host <host:ip>`**: Adds a custom entry to the container's `/etc/hosts` file.
-    ```bash
-    docker container run -it --add-host docker1:192.168.2.10 centos
-    ```
-  * **`--hostname <name>`**: Sets the container's hostname.
-    ```bash
-    docker container run -it --hostname webserver centos:8
-    ```
+| Command | Description |
+| :--- | :--- |
+| `docker container stats` | Displays a live stream of resource usage statistics for running containers. |
+| `docker container top <container>` | Shows the running processes inside a container. |
+| `docker container logs -f <container>` | Fetches and follows the logs of a container in real-time. |
+| `docker container cp <src_path> <dest_path>` | Copies files or folders between a container and the host. |
+| `docker container diff <container>` | Inspects changes (Added, Changed, Deleted) to a container's filesystem. |

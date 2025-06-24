@@ -1,169 +1,148 @@
 # Docker Networking, Container Management, Portainer, and Resource Control. (2025/06/25)
 
-## **Consolidated Lecture Notes: Docker Operations**
-
-Here are the complete notes from the lectures covering Docker Networking, Container Management, Portainer, and Resource Control.
 
 ### **Chapter 9: Docker Network Operations**
 
 #### **1. Docker Network Types (`bridge`, `host`, `none`)**
 
-  - **`bridge`**: The default network. It creates a private internal network (`docker0`) for containers, assigning them IP addresses (e.g., `172.17.0.x`).
-  - **`host`**: The container shares the host's network, using the host's IP address directly without getting its own.
-  - **`none`**: Isolates the container from the network, providing only a loopback interface.
+By default, Docker provides three network drivers for handling container communication.
+
+| Driver | Description | Use Case |
+| :--- | :--- | :--- |
+| **`bridge`** | **(Default)** Creates a private internal network. Docker manages IP addressing, routing, and a gateway for containers. | The most common driver for standalone containers that need to communicate with each other and the outside world. |
+| **`host`** | The container shares the host's entire network stack. No IP address is assigned to the container. | When network performance is critical and you don't need network isolation between the container and the host. |
+| **`none`** | The container is created with its own network stack but has no configured interfaces besides loopback (`lo`). | For containers that do not require any network access or for custom network setups. |
+
+**Default Bridge Network (`docker0`) Diagram**
+
+This diagram illustrates how a container connects to the host and the outside world through the default `docker0` bridge.
+
+```
++------------------+     +--------------------------+     +-------------------+
+|    Container     |     |        Docker Host       |     |   External Network  |
+|                  |     |                          |     | (e.g., Internet)  |
+|  eth0@ifXX      +<--->+  docker0 (172.17.0.1)  +<--->+    ens33 (Host IP)  |
+| (172.17.0.2)     |     | (Virtual Bridge/Gateway) |     |                   |
++------------------+     +--------------------------+     +-------------------+
+```
 
 #### **2. Custom Bridge Networks**
 
-  - **Creating a Network:**
-    ```bash
-    # Create a default bridge network
-    docker network create br0
+You can create your own isolated bridge networks for better application structure and security.
 
-    # Create a bridge network with a specific subnet and gateway
-    docker network create -d bridge --subnet 192.168.100.0/24 --gateway 192.168.100.254 br1
-    ```
-  - **Connecting Containers:**
-    ```bash
-    # Connect at creation
-    docker container run -itd --name testserver --network=br1 centos:8
+**Key Commands:**
 
-    # Connect a running container
-    docker network connect br1 myweb
+| Command | Description |
+| :--- | :--- |
+| `docker network create <name>` | Creates a new bridge network. |
+| `docker network inspect <name>` | Shows detailed information about a network (subnet, gateway, connected containers). |
+| `docker network connect <net> <cont>` | Connects a running container to an additional network. |
+| `docker network disconnect <net> <cont>`| Disconnects a container from a network. |
+| `docker network rm <name>` | Removes a network (must not have containers attached). |
+| `docker network prune` | Removes all unused networks. |
 
-    # Disconnect a running container
-    docker network disconnect br0 myweb
-    ```
-  - **Communication:**
-      - Containers on the **same custom network** can communicate by name.
-      - Containers on **different networks** are isolated.
-      - A container can be connected to multiple networks to act as a router between them. Manual route configuration (`route add...`) is required inside the containers for cross-network communication.
-  - **Cleanup:**
-    ```bash
-    # Remove all unused networks
-    docker network prune
-    ```
+**Communication Practice Diagram**
+
+This diagram shows the setup used in the video to demonstrate communication between isolated networks using a multi-homed container (`alpine3`) as a router.
+
+```
+       +----------------------------------+          +----------------------------------+
+       |         Docker Host (br-...)       |          |         Docker Host (docker0)      |
+       |       Gateway: 172.18.0.1/16     |          |       Gateway: 172.17.0.1/16     |
+       +----------------|-----------------+          +----------------|-----------------+
+                        |                                          |
+  +---------------------|-----------------------+    +---------------|--------------------+
+  | Network: alpinenet (172.18.0.0/16)          |    | Network: bridge (172.17.0.0/16)    |
+  +---------------------------------------------+    +------------------------------------+
+    |         |                   |                    |                   |
+.2  |      .3 |                .4 |                 .2 |                .3 |
+[eth0]   [eth0]             [eth1] <----[alpine3]----> [eth0]             [eth0]
++---------+ +---------+         +----------------+         +---------+
+| alpine1 | | alpine2 |         | (Multi-homed)  |         | alpine4 |
++---------+ +---------+         +----------------+         +---------+
+
+# Communication Path:
+# alpine1/2 <--> alpine3(eth1) <--> alpine3(eth0) <--> alpine4
+# (Requires manual routes added inside alpine1/2 and alpine4)
+```
 
 -----
 
 ### **Chapter 10: Docker Container Operations**
 
-#### **1. Legacy Container Linking (`--link`)**
+#### **1. Key Container Management Commands**
 
-> **Note:** This is a legacy feature. User-defined bridge networks are the modern standard for container communication.
+This table summarizes essential commands for managing the container lifecycle.
 
-  - The `--link` flag automatically adds a host entry (`/etc/hosts`) in the receiving container, allowing name resolution.
-
-**Example:**
-
-```bash
-# Create a MySQL database container
-docker container run -d --name mysql -e MYSQL_ROOT_PASSWORD=password mysql:5.7
-
-# Create a WordPress container and link it to the MySQL container
-docker container run -d --name wordpress --link mysql -p 80:80 wordpress:5
-```
-
-  - The `wordpress` container can now resolve the hostname `mysql` to the IP of the `mysql` container.
-
-#### **2. Container Management Commands**
-
-  - **`docker container attach <container>`**: Connects to the main process (PID 1) of a container. **Exiting will stop the container if the attached process is PID 1.**
-  - **`docker container exec -it <container> <command>`**: **Preferred method.** Starts a *new* process (e.g., `/bin/bash`) inside a running container. Exiting this new shell does not stop the container.
-  - **`docker container top <container>`**: Shows the processes running inside a container.
-  - **`docker container stats`**: Live-streams resource usage statistics (CPU, Memory, Network I/O) for all or specified containers.
-  - **`docker container logs -f <container>`**: Fetches container logs. The `-f` flag follows the log output in real-time.
-  - **`docker container cp <src_path> <dest_path>`**: Copies files between the host and a container.
-  - **`docker container diff <container>`**: Shows filesystem changes (Added, Changed, Deleted) in a container since it was created.
+| Command | Description |
+| :--- | :--- |
+| `docker container attach` | Attach to a container's main process (PID 1). Exiting can stop the container. |
+| `docker container exec` | **(Recommended)** Execute a new command in a running container. |
+| `docker container top` | Display the running processes of a container. |
+| `docker container stats` | Display a live stream of resource usage statistics. |
+| `docker container port` | List port mappings for the container. |
+| `docker container rename` | Rename a container. |
+| `docker container cp` | Copy files/folders between a container and the host. |
+| `docker container diff` | Inspect changes (Add, Change, Delete) to a container's filesystem. |
+| `docker container logs` | Fetch the logs of a container. Use `-f` to follow logs live. |
 
 -----
 
 ### **Chapter 11: Docker Resource Control and Monitoring**
 
-#### **1. Why Limit Resources?**
+#### **1. Resource Limit Options (`docker run`)**
 
-  - By default, a container can use all of the host's hardware resources (CPU, Memory, I/O).
-  - If one container consumes excessive resources, it can negatively impact other containers on the same host. It's crucial to set limits.
+It is critical to set resource limits to ensure fair resource distribution and host stability.
 
-#### **2. Resource Limit Options (`docker run ...`)**
+**Memory Limit Options:**
 
-  - **Memory Limits:**
+| Flag | Description |
+| :--- | :--- |
+| `-m` or `--memory` | Sets a hard memory limit (e.g., `512m`, `1g`). |
+| `--memory-swap` | Sets the total allowed memory + swap. Use `-1` for unlimited swap. |
+| `--oom-kill-disable` | Prevents the kernel from killing the container on an Out-Of-Memory error. **(Use with caution)**. |
 
-      - `-m` or `--memory=`: Sets a hard memory limit (e.g., `-m 512m`). If the container exceeds this, it will be killed by an Out-of-Memory (OOM) error.
-      - `--memory-swap=`: Sets the total memory plus swap the container can use. A value of `-1` allows unlimited swap.
-      - `--oom-kill-disable`: Prevents the container from being killed when it hits an OOM error. **Use with caution**, as it can destabilize the host.
+**CPU Limit Options:**
 
-    <!-- end list -->
+| Flag | Description |
+| :--- | :--- |
+| `--cpus` | Limits the number of CPU cores the container can use (e.g., `"1.5"`). |
+| `--cpu-shares` | A relative weight for CPU time. Default is `1024`. Higher means more CPU time. |
+| `--cpuset-cpus` | Pins a container to specific CPU cores (e.g., `"0,1"`). |
 
-    ```bash
-    # Limit memory to 200MB and total memory+swap to 300MB (100MB swap)
-    docker run -d -m 200m --memory-swap 300m nginx
-    ```
+**Block I/O Limit Options:**
 
-  - **CPU Limits:**
-
-      - `--cpus=`: Sets the number of CPUs a container can use (e.g., `--cpus="1.5"` for one and a half CPUs).
-      - `--cpu-shares=`: Sets a relative weight for CPU time. The default is `1024`. A container with a share of `2048` will get twice the CPU time as a container with `1024`.
-      - `--cpuset-cpus=`: Pins a container to specific CPU cores (e.g., `--cpuset-cpus="0,1"` to use core 0 and 1).
-
-    <!-- end list -->
-
-    ```bash
-    # Give a container 2x the CPU share relative to others
-    docker run -d --name c1 --cpu-shares 2048 stress
-
-    # Pin a container to CPU cores 0 and 1
-    docker run -d --name c2 --cpuset-cpus="0,1" stress
-    ```
-
-  - **Block I/O Limits:**
-
-      - `--device-read-bps=`, `--device-write-bps=`: Limits the read/write speed (bytes per second) for a specific device.
-      - `--device-read-iops=`, `--device-write-iops=`: Limits the read/write rate (IO operations per second).
-
-    <!-- end list -->
-
-    ```bash
-    # Limit write speed to 1MB/s on the /dev/sda device
-    docker run -it --rm --device-write-bps /dev/sda:1mb ubuntu
-    ```
+| Flag | Description |
+| :--- | :--- |
+| `--device-read-bps` | Limits read speed in bytes per second (e.g., `/dev/sda:1mb`). |
+| `--device-write-bps` | Limits write speed in bytes per second. |
+| `--device-read-iops` | Limits read rate in IO operations per second. |
+| `--device-write-iops` | Limits write rate in IO operations per second. |
 
 -----
 
 ### **GUI Management: Portainer**
 
-  - Portainer provides a powerful, web-based UI for managing Docker environments.
+Portainer is a web-based UI for managing Docker environments.
 
-#### **1. Deployment**
-
-  - Portainer itself runs as a Docker container.
-  - It requires access to the Docker socket (`/var/run/docker.sock`) to manage the Docker daemon.
-
-<!-- end list -->
+#### **1. Portainer Deployment Command Explained**
 
 ```bash
-# Command to run Portainer Community Edition
-docker container run -d -p 8000:8000 -p 9443:9443 \
---name=portainer \
---restart=always \
--v /var/run/docker.sock:/var/run/docker.sock \
--v portainer_data:/data \
-portainer/portainer-ce:latest
+docker container run -d \
+  -p 8000:8000 -p 9443:9443 \
+  --name=portainer \
+  --restart=always \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v portainer_data:/data \
+  portainer/portainer-ce:latest
 ```
 
-  - **Explanation:**
-      - `-p 9443:9443`: Exposes the HTTPS port for the Portainer UI.
-      - `--restart=always`: Ensures the Portainer container restarts automatically with the Docker daemon.
-      - `-v /var/run/docker.sock...`: Mounts the host's Docker socket into the container.
-      - `-v portainer_data...`: Creates a named volume to persist Portainer's own data.
-
-#### **2. Using Portainer**
-
-  - Access the web UI at `https://<your-docker-host-ip>:9443`.
-  - On first launch, you will set up an `admin` user and password.
-  - You can then connect to the local Docker environment to manage:
-      - **Containers**: Start, stop, kill, inspect, view logs, and open a console (`exec`).
-      - **Images**: Pull images from Docker Hub, view existing images, and remove them.
-      - **Networks**: View, create, and remove networks.
-      - **Volumes**: View, create, and remove volumes.
-      - **Dashboard**: Get an at-a-glance overview of your Docker environment.
-  - Portainer simplifies many of the command-line operations into a user-friendly graphical interface.
+| Flag/Argument | Purpose |
+| :--- | :--- |
+| `-d` | Runs the container in detached (background) mode. |
+| `-p 8000:8000 -p 9443:9443` | Maps the host's ports to the container's ports for the UI (9443) and edge agent (8000). |
+| `--name=portainer` | Assigns a memorable name to the container. |
+| `--restart=always` | Configures the container to restart automatically if it stops or the host reboots. |
+| `-v /var/run/docker.sock...` | **(Crucial)** Mounts the Docker socket from the host into the container, allowing Portainer to manage Docker. |
+| `-v portainer_data:/data` | Creates a named volume to persist Portainer's own settings and data. |
+| `portainer/portainer-ce:latest`| Specifies the Docker image to use (Community Edition, latest version). |

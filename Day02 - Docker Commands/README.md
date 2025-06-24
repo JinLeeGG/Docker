@@ -1,7 +1,8 @@
 
-# Docker Commands & Concepts: Comprehensive Notes
-
-This document compiles key Docker commands and concepts from the three lecture videos, providing a structured and easy-to-read reference.
+# Docker Basics & Initial Image Operations, 
+# Advanced Image Management & Docker Hub Interaction,
+# Advanced Container Operations & Clean-up
+# (2025/06/17)
 
 ## Part 1: Docker Basics & Initial Image Operations
 

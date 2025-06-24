@@ -10,7 +10,7 @@ Docker는 컨테이너 통신을 처리하기 위해 기본적으로 세 가지 
 | 드라이버 | 설명 | 주요 사용 사례 |
 | :--- | :--- | :--- |
 | **`bridge`** | **(기본값)** 사설 내부 네트워크를 생성합니다. Docker가 IP 주소, 라우팅, 게이트웨이를 관리하며 컨테이너에 `172.17.0.x` 같은 IP를 할당합니다. | 서로 통신하거나 외부와 통신해야 하는 독립 실행형 컨테이너에 가장 일반적으로 사용됩니다. |
-| **`host`** | 컨테이너가 호스트의 네트워크 스택을 공유합니다. 컨테이너는 별도의 IP를 할당받지 않고 호스트의 IP를 직접 사용합니다. | 네트워크 성능이 매우 중요하고 컨테이너와 호스트 간의 네트워크 분리가 필요 없을 때 사용합니다. |
+| **`host`** | 컨테이너가 호스트의 전체 네트워크 스택을 공유합니다. 컨테이너는 별도의 IP를 할당받지 않고 호스트의 IP를 직접 사용합니다. | 네트워크 성능이 매우 중요하고 컨테이너와 호스트 간의 네트워크 분리가 필요 없을 때 사용합니다. |
 | **`none`** | 컨테이너는 자신만의 네트워크 스택을 가지지만, 루프백(`lo`) 인터페이스 외에는 아무것도 구성되지 않아 네트워크와 완전히 격리됩니다. | 네트워크 접근이 전혀 필요 없는 컨테이너나 특수한 맞춤형 네트워크를 설정할 때 사용됩니다. |
 
 **기본 브리지 네트워크 (`docker0`) 다이어그램**
@@ -74,19 +74,26 @@ Docker는 컨테이너 통신을 처리하기 위해 기본적으로 세 가지 
 
 > **중요:** `--link` 옵션은 **레거시(legacy) 기능**입니다. 최신 버전의 Docker에서는 사용이 권장되지 않으며, 사용자 정의 브리지 네트워크 사용이 표준입니다.
 
-  - `--link` 플래그는 수신 컨테이너의 `/etc/hosts` 파일에 호스트 정보를 자동으로 추가하여 IP 주소 없이 이름으로 통신할 수 있게 해줍니다.
+`--link` 플래그는 수신 컨테이너의 `/etc/hosts` 파일에 호스트 정보를 자동으로 추가하여 IP 주소 없이 이름으로 통신할 수 있게 해줍니다.
 
 **예제:**
 
 ```bash
-# MySQL 데이터베이스 컨테이너 생성
-docker container run -d --name mysql -e MYSQL_ROOT_PASSWORD=password mysql:5.7
+# 1단계: MySQL 데이터베이스 컨테이너 생성
+docker container run -d --name mysql \
+  -v /dbdata:/var/lib/mysql \
+  -e MYSQL_ROOT_PASSWORD=wordpress \
+  mysql:5.7
 
-# WordPress 컨테이너를 생성하고 MySQL 컨테이너에 연결
-docker container run -d --name wordpress --link mysql -p 80:80 wordpress:5
+# 2단계: WordPress 컨테이너를 생성하고 MySQL 컨테이너에 연결
+docker container run -d --name wordpress \
+  --link mysql \
+  -e WORDPRESS_DB_HOST=mysql \
+  -e WORDPRESS_DB_USER=root \
+  -e WORDPRESS_DB_PASSWORD=wordpress \
+  -p 80:80 \
+  wordpress:5
 ```
-
-  - 이제 `wordpress` 컨테이너는 `mysql`이라는 호스트 이름을 `mysql` 컨테이너의 IP 주소로 해석할 수 있습니다.
 
 #### **2. 컨테이너 관리 명령어**
 
@@ -110,8 +117,7 @@ docker container run -d --name wordpress --link mysql -p 80:80 wordpress:5
 
 #### **1. 리소스 제한이 필요한 이유**
 
-  - 기본적으로 컨테이너는 호스트의 모든 하드웨어 자원(CPU, 메모리 등)을 제한 없이 사용할 수 있습니다.
-  - 하나의 컨테이너가 자원을 과도하게 사용하면 동일 호스트의 다른 컨테이너에 악영향을 줄 수 있으므로, 리소스를 제한하는 것이 중요합니다.
+안정적인 호스트 운영과 공정한 자원 분배를 위해 컨테이너의 리소스 사용량을 제한하는 것은 매우 중요합니다.
 
 #### **2. 리소스 제한 옵션 (`docker run`)**
 
@@ -125,6 +131,13 @@ docker container run -d --name wordpress --link mysql -p 80:80 wordpress:5
 | `--memory-swap` | 컨테이너가 사용할 수 있는 총 메모리+스왑의 양을 설정합니다. `-1`로 설정 시 스왑을 무제한으로 사용합니다. |
 | `--oom-kill-disable` | 메모리 부족 시 커널이 컨테이너를 강제 종료하지 않도록 설정합니다. **(호스트가 불안정해질 수 있어 주의 필요)**. |
 
+**예제:**
+
+```bash
+# 컨테이너의 메모리를 200MB로, 메모리+스왑 총합을 300MB로 제한
+docker run -it -m 200m --memory-swap 300m ubuntu
+```
+
 **CPU 제한 옵션:**
 
 | 플래그 | 설명 |
@@ -132,6 +145,16 @@ docker container run -d --name wordpress --link mysql -p 80:80 wordpress:5
 | `--cpus` | 컨테이너가 사용할 수 있는 CPU 코어의 수를 제한합니다. (예: `"1.5"`) |
 | `--cpu-shares` | CPU 사용에 대한 상대적인 가중치를 설정합니다. 기본값은 `1024`이며, 숫자가 높을수록 더 많은 CPU 시간을 할당받습니다. |
 | `--cpuset-cpus` | 컨테이너를 특정 CPU 코어에 고정(pinning)합니다. (예: `"0,1"`) |
+
+**예제:**
+
+```bash
+# 다른 컨테이너에 비해 2배의 CPU 사용 가중치 부여
+docker run -d --name container_A --cpu-shares 2048 nginx
+
+# 컨테이너를 0번, 1번 CPU 코어에 고정하여 실행
+docker run -d --name container_B --cpuset-cpus="0,1" nginx
+```
 
 **블록 I/O 제한 옵션:**
 
@@ -142,18 +165,22 @@ docker container run -d --name wordpress --link mysql -p 80:80 wordpress:5
 | `--device-read-iops` | 초당 읽기 IO 작업 수(IOPS)를 제한합니다. |
 | `--device-write-iops` | 초당 쓰기 IO 작업 수(IOPS)를 제한합니다. |
 
+**예제:**
+
+```bash
+# 호스트의 sda 디스크에 대한 쓰기 속도를 초당 1MB로 제한
+docker run -it --rm --device-write-bps /dev/sda:1mb ubuntu
+```
+
 -----
 
 ### **GUI 관리 도구: Portainer (포테이너)**
 
 Portainer는 Docker 환경을 관리하기 위한 강력한 웹 기반 UI를 제공합니다.
 
-#### **1. Portainer 배포**
-
-Portainer 역시 Docker 컨테이너로 실행되며, Docker 데몬을 관리하기 위해 Docker 소켓 파일(`/var/run/docker.sock`)에 접근해야 합니다.
+#### **1. Portainer 배포 명령어 설명**
 
 ```bash
-# Portainer Community Edition 실행 명령어
 docker container run -d \
   -p 8000:8000 -p 9443:9443 \
   --name=portainer \
@@ -166,7 +193,7 @@ docker container run -d \
 | 플래그/인자 | 목적 |
 | :--- | :--- |
 | `-d` | 컨테이너를 백그라운드(detached) 모드로 실행합니다. |
-| `-p 9443:9443` | Portainer 웹 UI 접속을 위해 호스트의 9443 포트를 컨테이너의 9443 포트와 연결합니다. |
+| `-p 9443:9443` | Portainer 웹 UI 접속을 위해 호스트의 9443 포트를 컨테이너의 9443 포트와 연결합니다. (8000번은 Edge Agent용) |
 | `--name=portainer` | 컨테이너에 `portainer`라는 이름을 지정합니다. |
 | `--restart=always` | 컨테이너가 중지되거나 호스트가 재부팅될 때 자동으로 다시 시작되도록 설정합니다. |
 | `-v /var/run/docker.sock...` | **(필수)** 호스트의 Docker 소켓을 컨테이너에 마운트하여 Portainer가 Docker를 제어할 수 있게 합니다. |
@@ -182,4 +209,4 @@ docker container run -d \
       - **이미지**: Docker Hub에서 이미지 가져오기(Pull), 기존 이미지 확인 및 삭제
       - **네트워크**: 네트워크 목록 확인, 생성 및 삭제
       - **볼륨**: 볼륨 목록 확인, 생성 및 삭제
-      - **대시보드**: Docker 환경의 전반적인 상태를 한눈에 파악
+      - **대시보드**: Docker 환경의 전반적인 상태를 한눈에 파악할 수 있습니다.

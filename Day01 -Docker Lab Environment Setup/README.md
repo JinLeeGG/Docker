@@ -1,4 +1,4 @@
-# Docker Lab Environment Setup: Comprehensive Guide
+# Docker Lab Environment Setup: Comprehensive Guide (2025/06/12)
 
 This guide covers setting up a complete Docker lab environment, from virtual machine installation and configuration to Docker Engine installation on multiple Linux VMs.
 

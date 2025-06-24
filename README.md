@@ -1,34 +1,23 @@
-# Docker Learning Lab Repository
 
-A comprehensive collection of Docker learning materials, featuring detailed lab environment setup guides and essential Docker commands for hands-on containerization learning.
+![image](https://github.com/user-attachments/assets/4c874ae7-c607-4cf2-8e34-c584e4e6b848)
+# Docker Class Notes
 
-## 📚 Repository Contents
+My personal Docker learning repository with lab setup and practice materials.
 
-### Day 01 - Docker Lab Environment Setup
-**Comprehensive Virtual Machine & Docker Installation Guide**
+## Structure
 
-### Day 02 - Docker Commands Reference
-Essential Docker commands and usage examples for daily container operations.
+- **Day01** - Lab Environment Setup (VMware + CentOS + Docker install)
+- **Day02** - Docker Commands 
+- **Day03** - Volumes, Binding, Network
+- **Day04** - Advanced Networking, Portainer, Resource Control
 
-## 🛠️ Lab Environment Specifications
+## Lab Setup
 
-### Virtual Machine Configuration
-- **Platform**: VMware Workstation 16 Pro
-- **OS**: CentOS Stream 9 (64-bit)
-- **Resources per VM**: 4 vCPUs, 3GB RAM, 100GB Storage
-- **Network**: NAT configuration with static IPs
-- **VMs**: docker1 (192.168.2.10), docker2 (192.168.2.20)
+2 VMs on VMware Workstation:
+- docker1: 192.168.2.10
+- docker2: 192.168.2.20
+- CentOS Stream 9, 4 vCPUs, 3GB RAM each
 
-### Prerequisites
-- VMware Workstation 16 Pro (free from Broadcom)
-- CentOS Stream 9 ISO image
-- Minimum 8GB RAM on host machine
-- 200GB+ available storage space
-- Administrative privileges
+## Notes
 
-## 🌐 Additional Resources
-
-- [Official Docker Documentation](https://docs.docker.com/)
-- [CentOS Stream Documentation](https://centos.org/stream/)
-- [VMware Workstation Documentation](https://docs.vmware.com/en/VMware-Workstation-Pro/)
-- [Docker Installation Guide](https://docs.docker.com/engine/install/centos/)
+Each folder has README.md (English) and KorNotes.md (Korean) with step-by-step instructions and exercises.

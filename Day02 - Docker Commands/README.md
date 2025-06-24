@@ -1,8 +1,5 @@
 
-# Docker Basics & Initial Image Operations, 
-# Advanced Image Management & Docker Hub Interaction,
-# Advanced Container Operations & Clean-up
-# (2025/06/17)
+# Docker Basic Commands (2025/06/17)
 
 ## Part 1: Docker Basics & Initial Image Operations
 

@@ -10,6 +10,7 @@ My personal Docker learning repository with lab setup and practice materials.
 - **Day02** - Docker Commands 
 - **Day03** - Volumes, Binding, Network
 - **Day04** - Advanced Networking, Portainer, Resource Control
+- **Day05** - Resource Control 
 
 ## Lab Setup
 

@@ -1,0 +1,11 @@
+# 베이스 이미지
+FROM ubuntu:latest
+
+# 이미지를 생성할 때 실행할 명령
+RUN apt-get update && apt-get -y install nginx
+
+# 파일 복사('index.html' 파일을 컨테이너 '/var/www/html/' 디렉토리에 복사)  
+COPY ./index.html /var/www/html/
+
+# 컨테이너를 구동할 때 실행할 명령
+CMD ["nginx", "-g", "daemon off;"]

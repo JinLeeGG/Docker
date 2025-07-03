@@ -1,0 +1,2 @@
+docker container run --name mydb -d -v mysqlvol:/var/lib/mysql -p 3306:3306 \
+-e MYSQL_ROOT_PASSWORD=password mysql:5.7

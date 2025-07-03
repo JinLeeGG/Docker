@@ -1,0 +1,7 @@
+# 베이스 이미지
+FROM ubuntu:latest
+
+# RUN 명령의 실행
+RUN echo Shell 형식입니다.
+RUN ["echo", "Exec 형식입니다."]
+RUN ["/bin/bash", "-c", "echo '/bin/bash를 실행한 Exec 형식입니다.'"]

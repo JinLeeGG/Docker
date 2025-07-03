@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  ubuntu:
+    image: ubuntu_vnc
+    hostname: ubuntu
+    container_name: ubuntu
+    tty: true
+    privileged: true
+    user: root
+    ports:
+     - "5901:5901"
+    volumes:
+      - /ubuntuvol:/share

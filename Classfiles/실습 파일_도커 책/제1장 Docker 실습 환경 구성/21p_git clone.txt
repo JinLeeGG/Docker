@@ -1,0 +1,6 @@
+yum -y install epel-release
+
+yum -y install git-core htop
+
+git clone https://github.com/ncs10322/docker.git
+

@@ -1,0 +1,15 @@
+# 베이스 이미지
+FROM golang:1.16
+ 
+# 디렉토리 이동 및 의존성 모듈 설치
+WORKDIR /go/src/github.com/test/hello
+RUN go get -d -v github.com/urfave/cli
+ 
+# 파일 복사('main.go' 파일을 컨테이너 '/go/src/github.com/test/hello' 디렉토리에 복사)
+COPY main.go main.go
+
+# 이미지를 생성할 때 실행할 명령
+RUN GOOS=linux go build -a -o hello main.go
+
+# 컨테이너를 구동할 때 실행할 명령
+ENTRYPOINT ["./hello"]

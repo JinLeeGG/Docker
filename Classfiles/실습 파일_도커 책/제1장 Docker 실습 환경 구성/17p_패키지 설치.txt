@@ -1,0 +1,3 @@
+yum -y install httpd gnome-tweaks gnome-extensions-app.x86_64
+
+gnome-extensions-app &

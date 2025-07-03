@@ -1,0 +1,9 @@
+docker container run -d -p 443:443 \
+--restart=always \
+--name local-registry \
+-v /auth:/certs \
+-v /root/upload-img-1:/var/lib/registry \
+-e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/myregistry.com.crt \
+-e REGISTRY_HTTP_TLS_KEY=/certs/myregistry.com.key \
+-e REGISTRY_HTTP_ADDR=0.0.0.0:443 \
+registry

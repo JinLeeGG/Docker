@@ -1,0 +1,5 @@
+docker service create --name myweb -d -p 80:80 \
+--replicas 2 \
+--update-delay 30s \
+--constraint=node.role!=manager \
+nginx:1.14

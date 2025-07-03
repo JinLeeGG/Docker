@@ -1,0 +1,1 @@
+echo "NFS volume test page" > /nfsweb/index.html

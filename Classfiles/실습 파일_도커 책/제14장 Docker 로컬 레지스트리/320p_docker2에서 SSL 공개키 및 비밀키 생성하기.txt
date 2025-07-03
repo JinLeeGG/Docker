@@ -1,0 +1,8 @@
+docker container run --rm \
+-v /auth:/auth \
+alpine/openssl req -newkey rsa:4096 \
+-nodes -sha256 -x509 -days 365 \
+-out /auth/myregistry.com.crt \
+-keyout /auth/myregistry.com.key \
+-subj '/CN=myregistry.com' \
+-addext "subjectAltName = DNS:myregistry.com"

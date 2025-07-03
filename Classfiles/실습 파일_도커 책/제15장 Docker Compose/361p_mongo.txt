@@ -1,0 +1,6 @@
+docker container run -d --name mongo \
+--restart=always \
+--network=mynet \
+-e MONGO_INITDB_ROOT_USERNAME=root \
+-e MONGO_INITDB_ROOT_PASSWORD=example \
+mongo

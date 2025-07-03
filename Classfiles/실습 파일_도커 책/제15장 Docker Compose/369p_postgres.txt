@@ -1,0 +1,5 @@
+docker container run -d --name db \
+--restart=always \
+--network=mynet \
+-e POSTGRES_PASSWORD=example \
+postgres

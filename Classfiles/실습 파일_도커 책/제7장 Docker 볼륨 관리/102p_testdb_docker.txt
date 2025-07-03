@@ -1,0 +1,7 @@
+create database testdb;
+use testdb;
+create table docker (id int, login varchar(10), password varchar(10), username varchar(20), age int);
+insert into docker values(1, 'docker1', 'docker1111', 'kim jung woo', 23);
+insert into docker values(2, 'docker2', 'docker2222', 'hong gil dong', 26); 
+insert into docker values(3, 'docker3', 'docker3333', 'park chan ho', 29);
+select * from docker;

@@ -1,0 +1,12 @@
+# 베이스 이미지
+FROM ubuntu:16.04
+
+# 이미지를 생성할 때 실행할 명령
+RUN apt-get update && apt-get -y upgrade
+RUN apt-get -y install nginx
+
+# 포트 지정
+EXPOSE 80
+
+# 컨테이너를 구동할 때 실행할 명령
+CMD ["nginx", "-g", "daemon off;"]

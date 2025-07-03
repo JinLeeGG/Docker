@@ -1,0 +1,10 @@
+docker container run -d --name mysql -v /dbdata:/var/lib/mysql \
+-e MYSQL_ROOT_PASSWORD=wordpress \
+-e MYSQL_PASSWORD=wordpress mysql:5.7
+
+
+docker container run -d --name wordpress \
+--link mysql:mysql57 \
+-e WORDPRESS_DB_USER=root \
+-e WORDPRESS_DB_PASSWORD=wordpress \
+-p 80:80 wordpress:5

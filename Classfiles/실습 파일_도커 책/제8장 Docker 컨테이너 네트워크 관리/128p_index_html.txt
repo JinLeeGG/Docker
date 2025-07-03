@@ -1,0 +1,5 @@
+ ② 각각의 마운트 디렉토리에 'index.html' 파일을 생성한다.
+
+echo "<h1><p style="color:red">web1 test page</p></h1>" > /www1/index.html
+echo "<h1><p style="color:blue">web2 test page</p></h1>" > /www2/index.html
+echo "<h1><p style="color:green">web3 test page</p></h1>" > /www3/index.html

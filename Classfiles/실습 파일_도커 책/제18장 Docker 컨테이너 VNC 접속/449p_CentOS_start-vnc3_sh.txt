@@ -1,0 +1,9 @@
+#!/bin/bash
+echo "$RESOLUTION 크기의 VNC 서버를 시작합니다."
+cat << EOF > ~/.vnc/config
+session=gnome
+securitytypes=vncauth,tlsvnc
+geometry=$RESOLUTION
+EOF
+echo ':1=root' >> /etc/tigervnc/vncserver.users
+systemctl enable --now vncserver@:1

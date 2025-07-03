@@ -1,0 +1,8 @@
+docker container run -d --name mongoexpress \
+--restart=always \
+--network=mynet \
+-p 8081:8081 \
+-e ME_CONFIG_MONGODB_ADMINUSERNAME=root \
+-e ME_CONFIG_MONGODB_ADMINPASSWORD=example \
+-e ME_CONFIG_MONGODB_URL="mongodb://root:example@mongo:27017/" \
+mongo-express

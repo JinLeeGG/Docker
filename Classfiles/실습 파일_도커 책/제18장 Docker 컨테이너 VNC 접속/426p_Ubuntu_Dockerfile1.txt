@@ -1,0 +1,48 @@
+# 베이스 이미지
+FROM ubuntu:20.04
+
+# 빌드 프로세스를 비대화형으로 전환하여 경고 방지를 위한 환경 변수 설정
+ENV DEBIAN_FRONTEND=noninteractive
+
+# bash 쉘 및 root 계정 환경 변수 설정
+ENV SHELL=/bin/bash
+ENV USER=root
+
+# VNC 접속을 위한 패키지 설치
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    xfce4 \
+    xfce4-goodies \
+    tightvncserver \
+    dbus-x11 \
+    xfonts-base \
+    autocutsel \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# VNC 패스워드 설정
+RUN mkdir /root/.vnc \
+    && echo "toor1234." | vncpasswd -f > /root/.vnc/passwd \
+    && chmod 600 /root/.vnc/passwd
+
+# VNC 환경에서 '복사&붙여넣기'를 할수 있도록 'autocutsel -fork' 명령 실행
+RUN echo "autocutsel -fork" >> ~/.bashrc
+
+# '.Xauthority' 파일 생성
+RUN touch /root/.Xauthority
+
+# VNC 화면 크기를 위한 환경 변수 설정
+ENV RESOLUTION=1920x1080
+
+# VNC 포트 
+EXPOSE 5901
+
+# 작업 디렉토리 이동
+WORKDIR /app
+
+# 'start-vnc1.sh' 스크립트 파일을 '/app' 디렉토리에 복사
+COPY start-vnc1.sh start-vnc1.sh
+
+# 'start-vnc1.sh' 실행 권한 설정
+RUN chmod +x start-vnc1.sh
+
+# 컨테이너 구동시 'start-vnc1.sh' 스크립트 파일 실행
+CMD ["./start-vnc1.sh"] 

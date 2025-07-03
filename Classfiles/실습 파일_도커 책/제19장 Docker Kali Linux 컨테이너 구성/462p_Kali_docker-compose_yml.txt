@@ -1,0 +1,14 @@
+version: "3.9"
+services:
+  kali:
+    image: kali_vnc
+    restart: always
+    hostname: kali
+    container_name: kali
+    tty: true
+    privileged: true
+    user: root
+    ports:
+     - "5901:5901"
+    volumes:
+      - /kalivol:/share

@@ -1,0 +1,28 @@
+# 베이스 이미지 
+FROM python:3.6
+
+# Label 설정
+LABEL maintainer "Docker Compose Test"
+
+# 이미지를 생성할 때 실행할 명령(pip 업그레이드)
+RUN pip install --upgrade pip
+
+# 환경 변수 설정(웹 작업 디렉토리를 환경 변수로 선언)
+ENV APP_PATH /opt/homepage
+
+# 호스트에 'requirements.txt'을 컨테이너 '/opt/homepage' 디렉토리로 복사
+COPY requirements.txt $APP_PATH/
+
+# 이미지를 생성할 때 실행할 명령('/opt/homepage/requirements.txt' 파일에 정의된 모듈 설치)
+RUN pip install --no-cache-dir -r $APP_PATH/requirements.txt
+
+# 호스트에 웹 애플리케이션 관련 파일을 컨테이너 '/opt/homepage' 디렉토리로 복사
+COPY app.py $APP_PATH/
+COPY static/ $APP_PATH/static/
+COPY templates/ $APP_PATH/templates/
+
+# 포트 지정
+EXPOSE 80
+
+# 컨테이너를 구동할 때 실행할 명령
+CMD ["python", "/opt/homepage/app.py"]

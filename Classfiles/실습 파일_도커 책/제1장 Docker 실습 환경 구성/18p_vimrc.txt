@@ -1,0 +1,9 @@
+set nu
+set ts=4
+set title
+set paste
+set bg=dark
+syntax on
+autocmd FileType yaml setlocal ai nu ts=2 sw=2 et paste
+autocmd Filetype python setlocal ai nu ts=2 sw=2 et paste
+

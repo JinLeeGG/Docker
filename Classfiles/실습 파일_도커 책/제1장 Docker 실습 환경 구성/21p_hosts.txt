@@ -1,0 +1,4 @@
+cat << EOF >> /etc/hosts
+192.168.2.10  docker1.example.com    	docker1
+192.168.2.20  docker2.example.com     	docker2
+EOF

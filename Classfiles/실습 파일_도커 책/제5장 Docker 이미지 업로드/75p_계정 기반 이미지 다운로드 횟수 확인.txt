@@ -1,0 +1,10 @@
+unset TOKEN
+
+TOKEN=$(curl --user '도커허브 아이디:도커허브 패스워드' \
+"https://auth.docker.io/token?service=registry.docker.io&scope=repository:ratelimitpreview/test:pull" \
+| jq -r .token)
+
+
+curl --head -H \
+"Authorization: Bearer $TOKEN" \
+https://registry-1.docker.io/v2/ratelimitpreview/test/manifests/latest 2>&1

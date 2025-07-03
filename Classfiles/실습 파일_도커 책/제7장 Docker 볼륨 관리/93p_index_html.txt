@@ -1,0 +1,1 @@
+echo 'volume test' > /var/lib/docker/volumes/testvol/_data/index.html

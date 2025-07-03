@@ -1,0 +1,1 @@
+docker container run -d --name myweb -v wwwvol:/usr/local/apache2/htdocs -p 80:80 httpd

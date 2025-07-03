@@ -1,0 +1,12 @@
+# 베이스 이미지
+FROM centos:8
+
+# 'user1' 계정 추가 및 확인
+RUN ["useradd", "user1"]
+RUN ["whoami"]
+RUN ["id"]
+
+# 계정 전환 및 확인
+USER user1
+RUN ["whoami"]
+RUN ["id"]

@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  debian:
+    image: debian_vnc
+    hostname: debian
+    container_name: debian
+    tty: true
+    privileged: true
+    user: root
+    ports:
+     - "5901:5901"
+    volumes:
+      - /debianvol:/share

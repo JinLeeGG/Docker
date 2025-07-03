@@ -1,0 +1,5 @@
+cat << EOF >> .bashrc 
+alias vi='vim'
+alias ls='ls --color=auto --time-style=long-iso'
+export PS1='\[\e[31;1m\][\u@\h\[\e[31;1m\] \w]# \[\e[m\]'
+EOF

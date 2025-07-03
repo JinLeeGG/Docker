@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  centos:
+    image: centos_vnc
+    hostname: centos
+    container_name: centos
+    tty: true
+    privileged: true
+    user: root
+    ports:
+      - "5901:5901"
+    volumes:
+      - /centosvol:/share
